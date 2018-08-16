@@ -1,44 +1,46 @@
-/**
- * @TODO:
- * - Instanciar um socket server p/ escutar pelas mensagens
- * - Tratar as mensagens por ponto e vírgula
- * - Definir um padrão p/ mensagens
- * - Verificar questão de ler os sensores do Arduino
- */
- 
 console.log('Inicializando maquete');
  
 /**
  * Inicialização e configuração do socket
  */
-let app = require('express')();
-let http = require('http').Server(app);
-let io = require('socket.io')(http);
+let io = require('socket.io-client'),
+    socket = io('http://localhost:5000');
 
-http.listen(3000, () => {
-	console.log('Escutando na porta 3000');
+let i2c = require('i2c');
+
+try {
+    var arduino = new i2c(0x18, { device: '/dev/i2c-1', debug: true });
+    arduino.setAddress(0x8);
+} catch (e) {
+    console.error('Erro ao inicializar a comunicação I2C com o Arduino');
+    throw e;
+}
+return;
+socket.on('statusSensores', function(data) {
+    console.log(data);
+    // montar string p/ enviar pro Arduino
+    let msgi2c = '' +
+        data.leds[0].status + ';' +
+        data.leds[1].status + ';' +
+        data.leds[2].status + ';' +
+        data.porta.status + ';' +
+        data.ar.status + ';' +
+        (data.ar.temperatura < 10 ? '0' : '') + data.ar.temperatura
+    ;
+
+    console.log(msgi2c); 
+
+    //arduino.write(msgi2c);
+    //arduino.read(15, (err, res) => {
+    //    console.log(res);
+    //});
 });
 
 /**
  * Inicialização e configuração do Arduino por I2C
  */
-//let i2c = require('i2c');
-//let arduino = new i2c(0x18, {device: '/dev/i2c-1', debug:false});
-//arduino.setAddress(0x8);
-//arduino.writeByte(0x2, (err) => { console.error(err); });
 
-io.on('connection', (socket) => {
-	console.log('Client conectado');
-	socket.on('disconnect', () => {
-		console.log('Client desconectado');
-	});
-	
-	/**
-	 * @TODO:
-	 * - Fazer o parse da mensagem recebida aqui 
-	 * - Enviar o respectivo comando para o Arduino
-	 */
-	
-	// Enviar mensagem para todos os clients
-	socket.emit('Client conectado');
-});
+
+
+
+// Formato: Led1;Led2;Led3;Porta;Ar;TempAr(00 a 99);TempAmbiente(00 a 99)
