@@ -4,20 +4,20 @@ console.log('Inicializando maquete');
  * Inicialização e configuração do socket
  */
 let io = require('socket.io-client'),
-    socket = io('http://localhost:5000');
+    socket = io('http://18.231.50.4:5000');
 
 let i2c = require('i2c');
 
 try {
-    var arduino = new i2c(0x18, { device: '/dev/i2c-1', debug: true });
+    var arduino = new i2c(0x18, { device: '/dev/i2c-1', debug: false });
     arduino.setAddress(0x8);
 } catch (e) {
     console.error('Erro ao inicializar a comunicação I2C com o Arduino');
     throw e;
 }
-return;
+
 socket.on('statusSensores', function(data) {
-    console.log(data);
+    console.log('statusSensores', data);
     // montar string p/ enviar pro Arduino
     let msgi2c = '' +
         data.leds[0].status + ';' +
@@ -30,10 +30,12 @@ socket.on('statusSensores', function(data) {
 
     console.log(msgi2c); 
 
-    //arduino.write(msgi2c);
-    //arduino.read(15, (err, res) => {
-    //    console.log(res);
-    //});
+    arduino.write(msgi2c, (err) => {
+        console.error(err);
+    });
+    arduino.read(15, (err, res) => {
+        console.log(res);
+    });
 });
 
 /**
